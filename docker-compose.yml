@@ -1,0 +1,175 @@
+version: "3.9"
+
+# ─── Shared environment ───────────────────────────────────────────────────────
+x-app-env: &app-env
+  DATABASE_URL: postgresql://routemonitor:password@db:5432/routemonitor
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  INFLUXDB_URL: http://influxdb:8086
+  INFLUXDB_TOKEN: my-super-secret-auth-token
+  INFLUXDB_ORG: myorg
+  INFLUXDB_BUCKET: bgp_metrics
+  BMP_LISTEN_HOST: "0.0.0.0"
+  BMP_LISTEN_PORT: "9179"
+  LOG_LEVEL: INFO
+
+services:
+  # ─── FastAPI ──────────────────────────────────────────────────────────────
+  api:
+    build: .
+    container_name: routemonitor-api
+    ports:
+      - "8001:8000"
+    environment:
+      <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Celery Worker ────────────────────────────────────────────────────────
+  celery:
+    build: .
+    container_name: routemonitor-celery
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+  # ─── Celery Beat (periodic tasks) ────────────────────────────────────────
+  celery-beat:
+    build: .
+    container_name: routemonitor-celery-beat
+    command: celery -A tasks.celery_app beat --loglevel=info
+    environment:
+      <<: *app-env
+    depends_on:
+      - celery
+    volumes:
+      - .:/app
+
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: routemonitor-postgres
+    environment:
+      POSTGRES_USER: routemonitor
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: routemonitor
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routemonitor -d routemonitor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: routemonitor-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ─── InfluxDB 2.0 ─────────────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: routemonitor-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
+      DOCKER_INFLUXDB_INIT_ORG: myorg
+      DOCKER_INFLUXDB_INIT_BUCKET: bgp_metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-super-secret-auth-token
+      DOCKER_INFLUXDB_INIT_RETENTION: 168h  # 7 days raw
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ─── Prometheus ───────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: routemonitor-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+
+  # ─── Grafana ──────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: routemonitor-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - influxdb
+
+  # ─── BMP Simulator (ExaBGP mock) ─────────────────────────────────────────
+  bmp-simulator:
+    build: .
+    container_name: routemonitor-bmp-simulator
+    command: python -m tests.fixtures.bgp_telemetry_generator --target api:9179
+    environment:
+      <<: *app-env
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    profiles:
+      - simulation   # only starts when: docker compose --profile simulation up
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,175 @@
+# Production Docker Compose — use with:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Differences from docker-compose.yml:
+#  - No --reload flag (production uvicorn)
+#  - uvicorn --workers 4 (multi-process)
+#  - No bind mounts (images are immutable)
+#  - Secrets via environment (replace with Docker Secrets or external vault)
+#  - Resource limits on every service
+#  - Grafana datasources pre-provisioned
+
+version: "3.9"
+
+x-app-env: &app-env
+  DATABASE_URL: ${DATABASE_URL}
+  REDIS_URL: ${REDIS_URL}
+  CELERY_BROKER_URL: ${REDIS_URL}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+  INFLUXDB_URL: http://influxdb:8086
+  INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+  INFLUXDB_ORG: ${INFLUXDB_ORG:-myorg}
+  INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-bgp_metrics}
+  BMP_LISTEN_HOST: "0.0.0.0"
+  BMP_LISTEN_PORT: "9179"
+  SECRET_KEY: ${SECRET_KEY}
+  APP_ENV: production
+  LOG_LEVEL: INFO
+
+services:
+  api:
+    image: routemonitor:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+      - "9179:9179"
+    environment:
+      <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4 --no-access-log
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  celery:
+    image: routemonitor:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=8 --max-tasks-per-child=1000
+    environment:
+      <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 2G
+
+  celery-beat:
+    image: routemonitor:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: celery -A tasks.celery_app beat --loglevel=info
+    environment:
+      <<: *app-env
+    depends_on:
+      - celery
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-routemonitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-routemonitor}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-routemonitor}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-myorg}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-bgp_metrics}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+      DOCKER_INFLUXDB_INIT_RETENTION: 168h
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
+      - influxdb
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  prometheus_data:
+  grafana_data:

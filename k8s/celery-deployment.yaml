@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routemonitor-celery
+  namespace: routemonitor
+  labels:
+    app: routemonitor-celery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: routemonitor-celery
+  template:
+    metadata:
+      labels:
+        app: routemonitor-celery
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: celery-worker
+          image: routemonitor:latest
+          command: ["celery", "-A", "tasks.celery_app", "worker",
+                    "--loglevel=info", "--concurrency=4", "-Q", "celery"]
+          envFrom:
+            - configMapRef:
+                name: routemonitor-config
+            - secretRef:
+                name: routemonitor-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1Gi"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routemonitor-celery-beat
+  namespace: routemonitor
+spec:
+  replicas: 1   # Beat MUST be singleton
+  selector:
+    matchLabels:
+      app: routemonitor-celery-beat
+  template:
+    metadata:
+      labels:
+        app: routemonitor-celery-beat
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: celery-beat
+          image: routemonitor:latest
+          command: ["celery", "-A", "tasks.celery_app", "beat", "--loglevel=info"]
+          envFrom:
+            - configMapRef:
+                name: routemonitor-config
+            - secretRef:
+                name: routemonitor-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"

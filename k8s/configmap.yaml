@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routemonitor-config
+  namespace: routemonitor
+data:
+  INFLUXDB_URL: "http://influxdb:8086"
+  INFLUXDB_ORG: "myorg"
+  INFLUXDB_BUCKET: "bgp_metrics"
+  BMP_LISTEN_HOST: "0.0.0.0"
+  BMP_LISTEN_PORT: "9179"
+  ANOMALY_BASELINE_DAYS: "7"
+  ANOMALY_Z_SCORE_THRESHOLD: "3.0"
+  ANOMALY_DEDUP_WINDOW_SECONDS: "300"
+  LOG_LEVEL: "INFO"
+  APP_ENV: "production"

@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routemonitor-api
+  namespace: routemonitor
+  labels:
+    app: routemonitor-api
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: routemonitor-api
+  template:
+    metadata:
+      labels:
+        app: routemonitor-api
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: api
+          image: routemonitor:latest
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+          ports:
+            - containerPort: 8000
+              name: http
+            - containerPort: 9179
+              name: bmp
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: routemonitor-config
+            - secretRef:
+                name: routemonitor-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: routemonitor-api
+  namespace: routemonitor
+  labels:
+    app: routemonitor-api
+spec:
+  selector:
+    app: routemonitor-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+    - name: bmp
+      port: 9179
+      targetPort: 9179
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: routemonitor-api-hpa
+  namespace: routemonitor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: routemonitor-api
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

@@ -1,0 +1,121 @@
+{
+  "__inputs": [
+    {"name": "DS_PROMETHEUS", "label": "Prometheus", "type": "datasource", "pluginId": "prometheus"}
+  ],
+  "title": "RouteMonitor Overview",
+  "uid": "routemonitor-overview",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Request Rate (req/sec)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(routemonitor_http_requests_total[1m])",
+          "legendFormat": "{{method}} {{endpoint}} {{status_code}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "HTTP p99 Latency (seconds)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(routemonitor_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99 {{endpoint}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "BMP Messages Ingested / sec",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(routemonitor_bmp_messages_total[1m])",
+          "legendFormat": "BMP msg/s"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Anomalies Detected (total)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+      "targets": [
+        {
+          "expr": "sum(routemonitor_anomalies_detected_total) by (severity)",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Alert Delivery Success Rate",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8},
+      "options": {"minValue": 0, "maxValue": 100},
+      "targets": [
+        {
+          "expr": "100 * sum(routemonitor_alerts_dispatched_total{delivery_status='DELIVERED'}) / sum(routemonitor_alerts_dispatched_total)",
+          "legendFormat": "Success %"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Rate Limit Rejections / sec",
+      "type": "timeseries",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(routemonitor_http_requests_total{status_code='429'}[1m])",
+          "legendFormat": "Rejected req/s"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Anomaly Timeline",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+      "targets": [
+        {
+          "expr": "increase(routemonitor_anomalies_detected_total[5m])",
+          "legendFormat": "{{anomaly_type}} / {{severity}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Celery Task Rate (ingest + detect)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "targets": [
+        {
+          "expr": "rate(celery_tasks_total[1m])",
+          "legendFormat": "{{task_name}} {{state}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "PostgreSQL Connections",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "legendFormat": "Active connections"
+        }
+      ]
+    }
+  ]
+}

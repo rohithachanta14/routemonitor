@@ -1,0 +1,44 @@
+# Requires nginx-ingress-controller installed in cluster.
+# For BMP (TCP): configure tcp-services ConfigMap separately.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: routemonitor-ingress
+  namespace: routemonitor
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-burst-multiplier: "5"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - routemonitor.example.com     # ← change this
+      secretName: routemonitor-tls
+  rules:
+    - host: routemonitor.example.com   # ← change this
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: routemonitor-api
+                port:
+                  number: 80
+          - path: /docs
+            pathType: Prefix
+            backend:
+              service:
+                name: routemonitor-api
+                port:
+                  number: 80
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: routemonitor-api
+                port:
+                  number: 80

@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop, "phase-*"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: routemonitor
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: routemonitor
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: postgresql://routemonitor:password@localhost:5432/routemonitor
+          REDIS_URL: redis://localhost:6379/0
+          INFLUXDB_URL: http://localhost:8086
+          INFLUXDB_TOKEN: test-token
+          INFLUXDB_ORG: testorg
+          INFLUXDB_BUCKET: test_bucket
+        run: pytest tests/unit/ -v --cov=api --cov=core --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml

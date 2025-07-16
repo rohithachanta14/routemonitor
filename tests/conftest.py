@@ -18,8 +18,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.types import TypeDecorator
 
 from api.main import app
-from api.models import (Alert, Anomaly, Base, BGPSpeaker, RouteEvent,
-                        WebhookSubscription)
+from api.models import Alert, Anomaly, Base, BGPSpeaker, RouteEvent, WebhookSubscription
 
 
 class SQLiteUUID(TypeDecorator):
@@ -250,7 +249,6 @@ def mock_anomaly(db_session: Session, mock_speaker: BGPSpeaker) -> Anomaly:
 @pytest.fixture
 def mock_bgp_telemetry_generator():
     """Return an instance of the mock telemetry generator."""
-    from tests.fixtures.bgp_telemetry_generator import \
-        MockBGPTelemetryGenerator
+    from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
     return MockBGPTelemetryGenerator(num_speakers=3, prefixes_per_speaker=100)

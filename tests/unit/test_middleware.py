@@ -7,9 +7,13 @@ import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.middleware import (ALERTS_DISPATCHED, ANOMALIES_DETECTED,
-                            BMP_MESSAGES_INGESTED, RateLimitMiddleware,
-                            RequestIDMiddleware)
+from api.middleware import (
+    ALERTS_DISPATCHED,
+    ANOMALIES_DETECTED,
+    BMP_MESSAGES_INGESTED,
+    RateLimitMiddleware,
+    RequestIDMiddleware,
+)
 
 
 @pytest.mark.unit

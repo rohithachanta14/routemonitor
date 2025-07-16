@@ -133,8 +133,12 @@ def test_dashboard_modules() -> None:
     print("\n=== 4. Dashboard modules ===")
 
     def pages():
-        from dashboard.views import (anomaly_timeline, correlation_matrix,
-                                     device_health, route_timeline)
+        from dashboard.views import (
+            anomaly_timeline,
+            correlation_matrix,
+            device_health,
+            route_timeline,
+        )
 
         assert callable(device_health.render)
         assert callable(route_timeline.render)
@@ -142,9 +146,11 @@ def test_dashboard_modules() -> None:
         assert callable(correlation_matrix.render)
 
     def formatting():
-        from dashboard.utils.formatting import (anomaly_type_label,
-                                                format_datetime,
-                                                format_duration_seconds)
+        from dashboard.utils.formatting import (
+            anomaly_type_label,
+            format_datetime,
+            format_duration_seconds,
+        )
 
         assert anomaly_type_label("ROUTE_FLAP") == "Route Flap"
         assert "UTC" in format_datetime("2024-01-01T00:00:00Z")

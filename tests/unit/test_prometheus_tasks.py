@@ -6,8 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.middleware import (ALERTS_DISPATCHED, ANOMALIES_DETECTED,
-                            BMP_MESSAGES_INGESTED)
+from api.middleware import ALERTS_DISPATCHED, ANOMALIES_DETECTED, BMP_MESSAGES_INGESTED
 from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
 

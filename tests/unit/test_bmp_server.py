@@ -7,8 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from api.bmp_server import (BMP_HEADER_SIZE, BMP_VERSION, BMPConnectionHandler,
-                            BMPServer)
+from api.bmp_server import BMP_HEADER_SIZE, BMP_VERSION, BMPConnectionHandler, BMPServer
 from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
 

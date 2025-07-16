@@ -2,8 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from api.schemas import (AlertWebhookRequest, BGPSpeakerRequest,
-                         RouteEventQueryParams)
+from api.schemas import AlertWebhookRequest, BGPSpeakerRequest, RouteEventQueryParams
 
 
 class TestBGPSpeakerRequest:

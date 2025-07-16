@@ -9,8 +9,12 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_db, get_influxdb_connector
 from api.models import BGPSpeaker, RouteEvent
-from api.schemas import (BGPSpeakerRequest, BGPSpeakerResponse,
-                         RouteEventResponse, TelemetryMetricsResponse)
+from api.schemas import (
+    BGPSpeakerRequest,
+    BGPSpeakerResponse,
+    RouteEventResponse,
+    TelemetryMetricsResponse,
+)
 from core.influxdb_connector import InfluxDBConnector
 
 router = APIRouter(prefix="/api/telemetry", tags=["telemetry"])

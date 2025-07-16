@@ -41,8 +41,7 @@ def skip(name: str, reason: str) -> None:
 def test_bmp_parser() -> None:
     print("\n=== 1. BMP Parser ===")
     from core.bmp_parser import BMPParser
-    from tests.fixtures.bgp_telemetry_generator import \
-        MockBGPTelemetryGenerator
+    from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
     gen = MockBGPTelemetryGenerator()
     parser = BMPParser()
@@ -114,8 +113,7 @@ def test_celery_tasks_live() -> None:
     from api.database import SessionLocal
     from api.models import BGPSpeaker, RouteEvent
     from tasks.ingestion import compute_aggregates_task, parse_bmp_message_task
-    from tests.fixtures.bgp_telemetry_generator import \
-        MockBGPTelemetryGenerator
+    from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
     hostname = f"live-{uuid.uuid4().hex[:8]}"
 
@@ -183,8 +181,7 @@ def test_api_live() -> None:
         assert "routes_advertised_24h" in r3.json()
 
     def bmp_ingest_async():
-        from tests.fixtures.bgp_telemetry_generator import \
-            MockBGPTelemetryGenerator
+        from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
         payload = {
             "hostname": f"{hostname}-bmp",

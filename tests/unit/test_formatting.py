@@ -3,9 +3,12 @@ from datetime import datetime, timezone
 
 import pytest
 
-from dashboard.utils.formatting import (anomaly_type_label, format_datetime,
-                                        format_duration_seconds,
-                                        severity_badge)
+from dashboard.utils.formatting import (
+    anomaly_type_label,
+    format_datetime,
+    format_duration_seconds,
+    severity_badge,
+)
 
 
 class TestFormatDatetime:

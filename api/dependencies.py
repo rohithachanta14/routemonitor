@@ -38,8 +38,7 @@ def get_influxdb_connector() -> InfluxDBConnector:
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
-from api.auth import \
-    get_current_user  # noqa: E402 — re-export for existing imports
+from api.auth import get_current_user  # noqa: E402 — re-export for existing imports
 
 # ─── Logger ───────────────────────────────────────────────────────────────────
 

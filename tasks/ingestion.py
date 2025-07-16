@@ -8,8 +8,7 @@ import structlog
 from celery import shared_task
 
 from api.database import SessionLocal
-from api.middleware import (ALERTS_DISPATCHED, ANOMALIES_DETECTED,
-                            BMP_MESSAGES_INGESTED)
+from api.middleware import ALERTS_DISPATCHED, ANOMALIES_DETECTED, BMP_MESSAGES_INGESTED
 from api.models import BGPSpeaker, RouteEvent
 from core.bmp_parser import BMPParser, parsed_message_to_dict
 from core.config import settings

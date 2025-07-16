@@ -210,8 +210,7 @@ def test_prometheus_live(client: httpx.Client) -> None:
 
 def test_bmp_ingest_live(client: httpx.Client) -> None:
     print("\n=== 5. BMP ingest smoke (live) ===")
-    from tests.fixtures.bgp_telemetry_generator import \
-        MockBGPTelemetryGenerator
+    from tests.fixtures.bgp_telemetry_generator import MockBGPTelemetryGenerator
 
     gen = MockBGPTelemetryGenerator()
 

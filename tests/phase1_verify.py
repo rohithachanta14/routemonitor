@@ -55,13 +55,15 @@ def test_imports() -> None:
     print("\n=== 1. Module Imports ===")
 
     def models():
-        from api.models import (Alert, Anomaly, BGPSpeaker,  # noqa: F401
-                                RouteEvent)
+        from api.models import Alert, Anomaly, BGPSpeaker, RouteEvent  # noqa: F401
 
     def schemas():
-        from api.schemas import (AlertWebhookRequest,  # noqa: F401
-                                 BGPSpeakerRequest, HealthResponse,
-                                 RouteEventQueryParams)
+        from api.schemas import (
+            AlertWebhookRequest,  # noqa: F401
+            BGPSpeakerRequest,
+            HealthResponse,
+            RouteEventQueryParams,
+        )
 
     def core():
         from core.bmp_parser import BMPParser  # noqa: F401
@@ -72,8 +74,9 @@ def test_imports() -> None:
         from tasks.ingestion import parse_bmp_message_task  # noqa: F401
 
     def generator():
-        from tests.fixtures.bgp_telemetry_generator import \
-            MockBGPTelemetryGenerator  # noqa: F401
+        from tests.fixtures.bgp_telemetry_generator import (
+            MockBGPTelemetryGenerator,
+        )  # noqa: F401
 
     check("import api.models", models)
     check("import api.schemas", schemas)
@@ -89,8 +92,11 @@ def test_schemas() -> None:
     print("\n=== 2. Pydantic Schema Validation ===")
     from pydantic import ValidationError
 
-    from api.schemas import (AlertWebhookRequest, BGPSpeakerRequest,
-                             RouteEventQueryParams)
+    from api.schemas import (
+        AlertWebhookRequest,
+        BGPSpeakerRequest,
+        RouteEventQueryParams,
+    )
 
     def valid_speaker():
         s = BGPSpeakerRequest(
@@ -326,7 +332,10 @@ def test_redis_celery() -> None:
 def test_bgp_generator() -> None:
     print("\n=== 7. BGP Telemetry Generator (Binary Encoding) ===")
     from tests.fixtures.bgp_telemetry_generator import (
-        BMP_MSG_ROUTE_MONITORING, BMP_VERSION, MockBGPTelemetryGenerator)
+        BMP_MSG_ROUTE_MONITORING,
+        BMP_VERSION,
+        MockBGPTelemetryGenerator,
+    )
 
     gen = MockBGPTelemetryGenerator(num_speakers=2, prefixes_per_speaker=10)
 

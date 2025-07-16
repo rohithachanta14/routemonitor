@@ -58,12 +58,8 @@ def test_imports() -> None:
         from api.models import Alert, Anomaly, BGPSpeaker, RouteEvent  # noqa: F401
 
     def schemas():
-        from api.schemas import (
-            AlertWebhookRequest,  # noqa: F401
-            BGPSpeakerRequest,
-            HealthResponse,
-            RouteEventQueryParams,
-        )
+        from api.schemas import AlertWebhookRequest  # noqa: F401
+        from api.schemas import BGPSpeakerRequest, HealthResponse, RouteEventQueryParams
 
     def core():
         from core.bmp_parser import BMPParser  # noqa: F401
@@ -74,9 +70,9 @@ def test_imports() -> None:
         from tasks.ingestion import parse_bmp_message_task  # noqa: F401
 
     def generator():
-        from tests.fixtures.bgp_telemetry_generator import (
+        from tests.fixtures.bgp_telemetry_generator import (  # noqa: F401
             MockBGPTelemetryGenerator,
-        )  # noqa: F401
+        )
 
     check("import api.models", models)
     check("import api.schemas", schemas)
